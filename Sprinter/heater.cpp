@@ -21,7 +21,7 @@
 */
 
 
-#include <avr/pgmspace.h>
+// #include <avr/pgmspace.h>
 
 #include "heater.h"
 #include "fastio.h"
@@ -168,6 +168,10 @@ int read_max6675()
 //------------------------------------------------------------------------
 
 #if defined(PID_SOFT_PWM) || (defined(FAN_SOFT_PWM) && (FAN_PIN > -1))
+void init_softpwm(void)
+
+
+
  void init_Timer2_softpwm(void)
  {
   // This is a simple SOFT PWM with 500 Hz for Extruder Heating

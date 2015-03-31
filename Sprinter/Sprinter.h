@@ -5,7 +5,7 @@
 #if defined(ARDUINO) && ARDUINO >= 100
   #include "Arduino.h"
 #else
-  #include <WProgram.h>  
+    #include <WProgram.h>  
 #endif
 
 #include "fastio.h"
@@ -92,7 +92,11 @@ void FlushSerialRequestResend();
 void ClearToSend();
 
 void analogWrite_check(uint8_t check_pin, int val);
-void showString (PGM_P s);
+#ifdef __CHIPKIT__
+  void showString(const char *s);
+#else
+  void showString (PGM_P s);
+#endif
 
 void manage_inactivity(byte debug);
 

@@ -6,6 +6,16 @@
 #ifndef	_ARDUINO_H
 #define	_ARDUINO_H
 
+// is this for the CHIPKIT?
+#if defined (__CHIPKIT__)
+	#include "chipkit_fastio.h"
+#else
+
+// NOPE... load the arduino stuff
+/*
+	utility functions
+*/
+
 #include	<avr/io.h>
 
 /*
@@ -3205,5 +3215,5 @@ pins
 #ifndef	DIO0_PIN
 #error pins for this chip not defined in arduino.h! If you write an appropriate pin definition and have this firmware work on your chip, please submit a pull request
 #endif
-
+#endif // chipkit check
 #endif /* _ARDUINO_H */
