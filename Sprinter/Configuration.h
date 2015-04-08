@@ -246,7 +246,7 @@ const int dropsegments=5; //everything with less than this number of steps will 
 
 //With this option its possible to drive the fan with SOFT PWM (500hz) and use
 //every Digital output for it, main usage for Sanguinololu
-#define FAN_SOFT_PWM
+//#define FAN_SOFT_PWM
 
 //-----------------------------------------------------------------------
 //// MINIMUM START SPEED FOR FAN
@@ -285,7 +285,7 @@ const int dropsegments=5; //everything with less than this number of steps will 
 //Sanguinololu 1.2 and above, the PWM Output Hotend Timer 1 is used for the Hardware PWM
 //but in this Software use Timer1 for the Stepperfunction so it is not possible to use the "analogWrite" function.
 //This Soft PWM use Timer 2 with 400 Hz to drive the PWM for the hotend
-#define PID_SOFT_PWM
+//#define PID_SOFT_PWM
 
 //Measure the MIN/MAX Value of the Hotend Temp and show it with
 //Command M601 / Command M602 Reset the MIN/MAX Value
@@ -293,7 +293,7 @@ const int dropsegments=5; //everything with less than this number of steps will 
 
 // M303 - PID relay autotune S<temperature> sets the target temperature. 
 // (default target temperature = 150C)
-#define PID_AUTOTUNE
+//#define PID_AUTOTUNE
 
 //PID Controler Settings
 #define PID_INTEGRAL_DRIVE_MAX 80 // too big, and heater will lag after changing temperature, too small and it might not compensate enough for long-term errors

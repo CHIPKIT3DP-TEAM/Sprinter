@@ -14,6 +14,8 @@ extern "C" void __cxa_pure_virtual();
 
 #define  FORCE_INLINE __attribute__((always_inline)) inline
 
+#define PSTR(a) (a)
+
 #if X_ENABLE_PIN > -1
 #define  enable_x() WRITE(X_ENABLE_PIN, X_ENABLE_ON)
 #define disable_x() WRITE(X_ENABLE_PIN,!X_ENABLE_ON)
