@@ -5,7 +5,7 @@
 #if defined(ARDUINO) && ARDUINO >= 100
   #include "Arduino.h"
 #else
-    #include <WProgram.h>  
+    #include <WProgram.h>
 #endif
 
 #include "fastio.h"
@@ -51,7 +51,7 @@ extern "C" void __cxa_pure_virtual();
 #define E_AXIS 3
 
 
-// This struct is used when buffering the setup for each linear movement "nominal" values are as specified in 
+// This struct is used when buffering the setup for each linear movement "nominal" values are as specified in
 // the source g-code and may never actually be reached if acceleration management is active.
 typedef struct {
   // Fields used by the bresenham algorithm for tracing the line
@@ -72,7 +72,7 @@ typedef struct {
 
   // Fields used by the motion planner to manage acceleration
 //  float speed_x, speed_y, speed_z, speed_e;          // Nominal mm/minute for each axis
-  float nominal_speed;                               // The nominal speed for this block in mm/min  
+  float nominal_speed;                               // The nominal speed for this block in mm/min
   float entry_speed;                                 // Entry speed at previous-current junction in mm/min
   float max_entry_speed;                             // Maximum allowable junction entry speed in mm/min
   float millimeters;                                 // The total travel of this block in mm
@@ -82,8 +82,8 @@ typedef struct {
 
 
   // Settings for the trapezoid generator
-  long nominal_rate;                                 // The nominal step rate for this block in step_events/sec 
-  long initial_rate;                        // The jerk-adjusted step rate at start of block  
+  long nominal_rate;                                 // The nominal step rate for this block in step_events/sec
+  long initial_rate;                        // The jerk-adjusted step rate at start of block
   long final_rate;                          // The minimal rate at exit
   long acceleration_st;                              // acceleration steps/sec^2
   volatile char busy;
@@ -96,6 +96,7 @@ void ClearToSend();
 void analogWrite_check(uint8_t check_pin, int val);
 #ifdef __CHIPKIT__
   void showString(const char *s);
+  #define PGM_P  
 #else
   void showString (PGM_P s);
 #endif
