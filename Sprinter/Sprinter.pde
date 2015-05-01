@@ -656,12 +656,16 @@ void analogWrite_check(uint8_t check_pin, int val)
         analogWrite(check_pin, val);
     }
   #endif
+
+  #ifdef __PIC32MX__
+  	analogWrite(check_pin,val); // if PIC32 do it anyway... don't know if this is a good PWM channel..
+  #endif
 }
 
 //------------------------------------------------
 //Print a String from Flash to Serial (save RAM)
 //------------------------------------------------
-#ifdef __CHIPKIT__
+#ifdef __PIC32MX__
 void showString(const char *s)
 {
   while (*s)
@@ -1646,7 +1650,7 @@ FORCE_INLINE void process_commands()
               g_fan_pwm_val = l_fan_code_val;
             #else
               WRITE(FAN_PIN, HIGH);
-              analogWrite_check(FAN_PIN, l_fan_code_val;
+              analogWrite_check(FAN_PIN, l_fan_code_val);
             #endif
 
         }
@@ -2632,7 +2636,7 @@ void plan_buffer_line(float x, float y, float z, float e, float feed_rate)
   if ( block->steps_x <= dropsegments && block->steps_y <= dropsegments && block->steps_z <= dropsegments ) {
     block->millimeters = fabs(delta_mm[E_AXIS]);
   } else {
-    block->millimeters = sqrt(square(delta_mm[X_AXIS]) + square(delta_mm[Y_AXIS]) + square(delta_mm[Z_AXIS]));
+    block->millimeters = sqrt(sq(delta_mm[X_AXIS]) + sq(delta_mm[Y_AXIS]) + sq(delta_mm[Z_AXIS]));
   }
 
   float inverse_millimeters = 1.0/block->millimeters;  // Inverse millimeters to remove multiple divides
@@ -2920,75 +2924,18 @@ void getHighESpeed()
 
 // Stepper
 
-// intRes = intIn1 * intIn2 >> 16
+// intRes = charIn1 * intIn2 >> 16
 // uses:
 // r26 to store 0
 // r27 to store the byte 1 of the 24 bit result
-#define MultiU16X8toH16(intRes, charIn1, intIn2) \
-asm volatile ( \
-"clr r26 \n\t" \
-"mul %A1, %B2 \n\t" \
-"movw %A0, r0 \n\t" \
-"mul %A1, %A2 \n\t" \
-"add %A0, r1 \n\t" \
-"adc %B0, r26 \n\t" \
-"lsr r0 \n\t" \
-"adc %A0, r26 \n\t" \
-"adc %B0, r26 \n\t" \
-"clr r1 \n\t" \
-: \
-"=&r" (intRes) \
-: \
-"d" (charIn1), \
-"d" (intIn2) \
-: \
-"r26" \
-)
+#define MultiU16X8toH16(intRes, charIn1, intIn2) do{(intRes) = ((charIn1) * (intIn2) >> 16)}while(0)
 
 // intRes = longIn1 * longIn2 >> 24
 // uses:
 // r26 to store 0
 // r27 to store the byte 1 of the 48bit result
-#define MultiU24X24toH16(intRes, longIn1, longIn2) \
-asm volatile ( \
-"clr r26 \n\t" \
-"mul %A1, %B2 \n\t" \
-"mov r27, r1 \n\t" \
-"mul %B1, %C2 \n\t" \
-"movw %A0, r0 \n\t" \
-"mul %C1, %C2 \n\t" \
-"add %B0, r0 \n\t" \
-"mul %C1, %B2 \n\t" \
-"add %A0, r0 \n\t" \
-"adc %B0, r1 \n\t" \
-"mul %A1, %C2 \n\t" \
-"add r27, r0 \n\t" \
-"adc %A0, r1 \n\t" \
-"adc %B0, r26 \n\t" \
-"mul %B1, %B2 \n\t" \
-"add r27, r0 \n\t" \
-"adc %A0, r1 \n\t" \
-"adc %B0, r26 \n\t" \
-"mul %C1, %A2 \n\t" \
-"add r27, r0 \n\t" \
-"adc %A0, r1 \n\t" \
-"adc %B0, r26 \n\t" \
-"mul %B1, %A2 \n\t" \
-"add r27, r1 \n\t" \
-"adc %A0, r26 \n\t" \
-"adc %B0, r26 \n\t" \
-"lsr r27 \n\t" \
-"adc %A0, r26 \n\t" \
-"adc %B0, r26 \n\t" \
-"clr r1 \n\t" \
-: \
-"=&r" (intRes) \
-: \
-"d" (longIn1), \
-"d" (longIn2) \
-: \
-"r26" , "r27" \
-)
+#define MultiU24X24toH16(intRes, longIn1, longIn2) do{(intRes) = ((longIn1)*(longIn2)) >> 24)}while(0)
+
 
 // Some useful constants
 

@@ -94,7 +94,7 @@ void FlushSerialRequestResend();
 void ClearToSend();
 
 void analogWrite_check(uint8_t check_pin, int val);
-#ifdef __CHIPKIT__
+#ifdef __PIC32MX__
   void showString(const char *s);
   #define PGM_P  
 #else

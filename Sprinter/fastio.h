@@ -7,7 +7,7 @@
 #define	_ARDUINO_H
 
 // is this for the CHIPKIT?
-#if defined (__CHIPKIT__)
+#if defined (__PIC32MX__)
 	#include "chipkit_fastio.h"
 #else
 
