@@ -605,11 +605,17 @@ unsigned char manage_monitor = 255;
 #endif
 
 
+#ifdef __PIC32__
+extern __attribute__((section("linker_defined"))) char _heap;
+extern __attribute__((section("linker_defined"))) char _min_heap_size;
+#endif
+
 int FreeRam1(void)
 {
+  int free_memory;
+#ifndef __PIC32__  
   extern int  __bss_end;
   extern int* __brkval;
-  int free_memory;
 
   if (reinterpret_cast<int>(__brkval) == 0)
   {
@@ -621,6 +627,11 @@ int FreeRam1(void)
     // use from top of stack to heap
     free_memory = reinterpret_cast<int>(&free_memory) - reinterpret_cast<int>(__brkval);
   }
+#else // PIC32
+  uint8_t * pTopHeap = (byte *) &_heap + (unsigned int) &_min_heap_size;
+  unsigned int topStack = (unsigned int) &pTopHeap;
+  free_memory = (unsigned int) pTopHeap - topStack; // distance between the heap & stack
+#endif
 
   return free_memory;
 }
@@ -2934,7 +2945,7 @@ void getHighESpeed()
 // uses:
 // r26 to store 0
 // r27 to store the byte 1 of the 48bit result
-#define MultiU24X24toH16(intRes, longIn1, longIn2) do{(intRes) = ((longIn1)*(longIn2)) >> 24);}while(0)
+#define MultiU24X24toH16(intRes, longIn1, longIn2) do{(intRes) = ((longIn1)*(longIn2) >> 24);}while(0)
 
 
 // Some useful constants
@@ -3078,7 +3089,12 @@ FORCE_INLINE void trapezoid_generator_reset()
 
 // "The Stepper Driver Interrupt" - This timer interrupt is the workhorse.
 // It pops blocks from the block_buffer and executes them by pulsing the stepper pins appropriately.
+#ifndef __PIC32__
 ISR(TIMER1_COMPA_vect)
+#else
+//void __USER_ISR stepper_isr(void);
+void __attribute__((interrupt)) stepper_isr(void)
+#endif
 {
   // If there is no current block, attempt to pop one from the buffer
   if (current_block == NULL) {
@@ -3096,7 +3112,11 @@ ISR(TIMER1_COMPA_vect)
 //      #endif
     }
     else {
+      #ifdef __PIC32__
+
+      #else
         OCR1A=2000; // 1kHz.
+      #endif
     }
   }
 
@@ -3342,7 +3362,10 @@ ISR(TIMER1_COMPA_vect)
 
       // step_rate to timer interval
       timer = calc_timer(acc_step_rate);
-      OCR1A = timer;
+      #ifdef __PIC32__
+      #else
+        OCR1A = timer;
+      #endif
       acceleration_time += timer;
       #ifdef ADVANCE
         for(int8_t i=0; i < step_loops; i++) {
@@ -3371,7 +3394,10 @@ ISR(TIMER1_COMPA_vect)
 
       // step_rate to timer interval
       timer = calc_timer(step_rate);
-      OCR1A = timer;
+      #ifdef __PIC32__
+      #else
+        OCR1A = timer;
+      #endif
       deceleration_time += timer;
       #ifdef ADVANCE
         for(int8_t i=0; i < step_loops; i++) {
@@ -3384,7 +3410,10 @@ ISR(TIMER1_COMPA_vect)
       #endif //ADVANCE
     }
     else {
-      OCR1A = OCR1A_nominal;
+      #ifdef __PIC32__
+      #else
+        OCR1A = OCR1A_nominal;
+      #endif
     }
 
     // If current block is finished, reset pointer
@@ -3424,6 +3453,7 @@ ISR(TIMER0_COMPA_vect)
     }
   }
 #endif // ADVANCE
+
 
 void st_init()
 {
@@ -3467,8 +3497,13 @@ void st_init()
   sei();
   #else // must be a pic32
   // Configure a Type B timer in 16-bit mode with a 2MHZ clock
+  // use Timer 3 for this interrupt
 
 
+  setIntVector(_TIMER_3_VECTOR,stepper_isr);
+  setIntPriority(_TIMER_3_VECTOR,4,0);
+  clearIntFlag(_TIMER_3_IRQ);
+  setIntEnable(_TIMER_3_IRQ);
   #endif
 }
 

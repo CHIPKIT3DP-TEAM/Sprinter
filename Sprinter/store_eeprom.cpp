@@ -15,8 +15,12 @@
  along with this program.  If not, see <http://www.gnu.org/licenses/>. 
 */
 
+#ifndef __PIC32__
 #include <avr/eeprom.h>
 #include <avr/pgmspace.h>
+#else // PIC32 option
+
+#endif
 #include <inttypes.h>
 
 #include "Sprinter.h"
