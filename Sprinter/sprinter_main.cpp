@@ -613,7 +613,7 @@ extern __attribute__((section("linker_defined"))) char _min_heap_size;
 int FreeRam1(void)
 {
   int free_memory;
-#ifndef __PIC32__  
+#ifndef __PIC32__
   extern int  __bss_end;
   extern int* __brkval;
 
@@ -2953,8 +2953,8 @@ void getHighESpeed()
 #define ENABLE_STEPPER_DRIVER_INTERRUPT()  TIMSK1 |= (1<<OCIE1A)
 #define DISABLE_STEPPER_DRIVER_INTERRUPT() TIMSK1 &= ~(1<<OCIE1A)
 #else // PIC32
-#define ENABLE_STEPPER_DRIVER_INTERRUPT()  // Enable stepper timer interrupt
-#define DISABLE_STEPPER_DRIVER_INTERRUPT() // Disable stepper timer interrupt
+#define ENABLE_STEPPER_DRIVER_INTERRUPT()  do{IEC0bits.T3IE = 1;}while(0)// Enable stepper timer interrupt
+#define DISABLE_STEPPER_DRIVER_INTERRUPT() do{IEC0bits.T3IE = 0;}while(0)// Disable stepper timer interrupt
 #endif
 
 #ifdef ENDSTOPS_ONLY_FOR_HOMING
@@ -3093,9 +3093,13 @@ FORCE_INLINE void trapezoid_generator_reset()
 ISR(TIMER1_COMPA_vect)
 #else
 //void __USER_ISR stepper_isr(void);
-void __attribute__((interrupt)) stepper_isr(void)
+// void __attribute__((interrupt)) stepper_isr(void)
+void __ISR(_TIMER_3_VECTOR,ipl3) stepper_isr(void)
 #endif
 {
+  #ifdef __PIC32__
+  mT3ClearIntFlag(); // clear the interrupt flag
+  #endif
   // If there is no current block, attempt to pop one from the buffer
   if (current_block == NULL) {
     // Anything in the buffer?
@@ -3113,7 +3117,7 @@ void __attribute__((interrupt)) stepper_isr(void)
     }
     else {
       #ifdef __PIC32__
-
+        PR2 = 2000;
       #else
         OCR1A=2000; // 1kHz.
       #endif
@@ -3363,6 +3367,7 @@ void __attribute__((interrupt)) stepper_isr(void)
       // step_rate to timer interval
       timer = calc_timer(acc_step_rate);
       #ifdef __PIC32__
+        PR3 = timer;
       #else
         OCR1A = timer;
       #endif
@@ -3395,6 +3400,7 @@ void __attribute__((interrupt)) stepper_isr(void)
       // step_rate to timer interval
       timer = calc_timer(step_rate);
       #ifdef __PIC32__
+        PR3 = timer;
       #else
         OCR1A = timer;
       #endif
@@ -3411,6 +3417,7 @@ void __attribute__((interrupt)) stepper_isr(void)
     }
     else {
       #ifdef __PIC32__
+        PR3 = OCR1A_nominal;
       #else
         OCR1A = OCR1A_nominal;
       #endif
@@ -3477,7 +3484,6 @@ void st_init()
 
   OCR1A = 0x4000;
   TCNT1 = 0;
-  ENABLE_STEPPER_DRIVER_INTERRUPT();
 
 #ifdef ADVANCE
   #if defined(TCCR0A) && defined(WGM01)
@@ -3488,23 +3494,40 @@ void st_init()
   TIMSK0 |= (1<<OCIE0A);
 #endif //ADVANCE
 
+
+x  #else // must be a pic32
+  // Configure a Type B timer in 16-bit mode with a 2MHZ clock
+  // use Timer 3 for this interrupt
+  // step 1 is create a Peripheral bus clock for a reasonable speed.
+  // Lets configure it for 8MHz so we have some fast options and can reach 2mhz with the timer
+  while(PB3DIVbits.PBDIVRDY == 0); // sit here until the clock can switch
+  PB3DIVbits.PBDIV = F_CPU/8000000UL; // I expect this to be 25 on the MZ and 10 on the MX
+  PB3DIVbits.ON = 1; // turn on the peripheral clock
+
+  // Timer 3 is for the stepper motor control
+  ConfigIntTimer3(T3_INT_ON | T3_INT_PRIOR_3);
+  OpenTimer3(T3_ON | T3_PS_1_4,0x4000);
+
+  #ifdef ADVANCE
+    #if defined(TCCR0A) && defined(WGM01)
+      TCCR0A &= ~(1<<WGM01);
+      TCCR0A &= ~(1<<WGM00);
+    #endif
+    e_steps = 0;
+    TIMSK0 |= (1<<OCIE0A); // Activate this timer interrupt
+  #endif //ADVANCE
+
+
+  #endif
+
   #ifdef ENDSTOPS_ONLY_FOR_HOMING
     enable_endstops(false);
   #else
     enable_endstops(true);
   #endif
 
+  ENABLE_STEPPER_DRIVER_INTERRUPT();
   sei();
-  #else // must be a pic32
-  // Configure a Type B timer in 16-bit mode with a 2MHZ clock
-  // use Timer 3 for this interrupt
-
-
-  setIntVector(_TIMER_3_VECTOR,stepper_isr);
-  setIntPriority(_TIMER_3_VECTOR,4,0);
-  clearIntFlag(_TIMER_3_IRQ);
-  setIntEnable(_TIMER_3_IRQ);
-  #endif
 }
 
 // Block until all buffered steps are executed
