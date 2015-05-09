@@ -155,6 +155,12 @@
 #include "speed_lookuptable.h"
 #include "heater.h"
 
+#ifdef __PIC32__
+#include <WProgram.h>
+#include "Timer.h"
+Timer3 stepTimer;
+#endif
+
 #ifdef USE_ARC_FUNCTION
   #include "arc_func.h"
 #endif
@@ -2953,8 +2959,8 @@ void getHighESpeed()
 #define ENABLE_STEPPER_DRIVER_INTERRUPT()  TIMSK1 |= (1<<OCIE1A)
 #define DISABLE_STEPPER_DRIVER_INTERRUPT() TIMSK1 &= ~(1<<OCIE1A)
 #else // PIC32
-#define ENABLE_STEPPER_DRIVER_INTERRUPT()  do{IEC0bits.T3IE = 1;}while(0)// Enable stepper timer interrupt
-#define DISABLE_STEPPER_DRIVER_INTERRUPT() do{IEC0bits.T3IE = 0;}while(0)// Disable stepper timer interrupt
+#define ENABLE_STEPPER_DRIVER_INTERRUPT()  stepTimer.enableInterrupt();
+#define DISABLE_STEPPER_DRIVER_INTERRUPT() stepTimer.disableInterrupt();
 #endif
 
 #ifdef ENDSTOPS_ONLY_FOR_HOMING
@@ -3081,7 +3087,7 @@ FORCE_INLINE void trapezoid_generator_reset()
 #ifndef __PIC32__
   OCR1A = acceleration_time;
 #else
-
+  stepTimer.setPeriod(acceleration_time);
 #endif
   OCR1A_nominal = calc_timer(current_block->nominal_rate);
 
@@ -3094,12 +3100,9 @@ ISR(TIMER1_COMPA_vect)
 #else
 //void __USER_ISR stepper_isr(void);
 // void __attribute__((interrupt)) stepper_isr(void)
-void __ISR(_TIMER_3_VECTOR,ipl3) stepper_isr(void)
+void __attribute__((interrupt)) stepper_isr(void)
 #endif
 {
-  #ifdef __PIC32__
-  mT3ClearIntFlag(); // clear the interrupt flag
-  #endif
   // If there is no current block, attempt to pop one from the buffer
   if (current_block == NULL) {
     // Anything in the buffer?
@@ -3117,7 +3120,7 @@ void __ISR(_TIMER_3_VECTOR,ipl3) stepper_isr(void)
     }
     else {
       #ifdef __PIC32__
-        PR2 = 2000;
+        stepTimer.setPeriod(2000);
       #else
         OCR1A=2000; // 1kHz.
       #endif
@@ -3367,7 +3370,7 @@ void __ISR(_TIMER_3_VECTOR,ipl3) stepper_isr(void)
       // step_rate to timer interval
       timer = calc_timer(acc_step_rate);
       #ifdef __PIC32__
-        PR3 = timer;
+        stepTimer.setPeriod(timer);
       #else
         OCR1A = timer;
       #endif
@@ -3400,7 +3403,7 @@ void __ISR(_TIMER_3_VECTOR,ipl3) stepper_isr(void)
       // step_rate to timer interval
       timer = calc_timer(step_rate);
       #ifdef __PIC32__
-        PR3 = timer;
+        stepTimer.setPeriod(timer);
       #else
         OCR1A = timer;
       #endif
@@ -3417,7 +3420,7 @@ void __ISR(_TIMER_3_VECTOR,ipl3) stepper_isr(void)
     }
     else {
       #ifdef __PIC32__
-        PR3 = OCR1A_nominal;
+        stepTimer.setPeriod(OCR1A_nominal);
       #else
         OCR1A = OCR1A_nominal;
       #endif
@@ -3429,6 +3432,9 @@ void __ISR(_TIMER_3_VECTOR,ipl3) stepper_isr(void)
       plan_discard_current_block();
     }
   }
+  #ifdef __PIC32__
+  clearIntFlag(_TIMER_3_IRQ);
+  #endif
 }
 
 #ifdef ADVANCE
@@ -3505,8 +3511,10 @@ x  #else // must be a pic32
   PB3DIVbits.ON = 1; // turn on the peripheral clock
 
   // Timer 3 is for the stepper motor control
-  ConfigIntTimer3(T3_INT_ON | T3_INT_PRIOR_3);
-  OpenTimer3(T3_ON | T3_PS_1_4,0x4000);
+  stepTimer.setFrequency(1000);
+  stepTimer.attachInterrupt(stepper_isr);
+  stepTimer.reset();
+  stepTimer.start();
 
   #ifdef ADVANCE
     #if defined(TCCR0A) && defined(WGM01)
@@ -3527,7 +3535,11 @@ x  #else // must be a pic32
   #endif
 
   ENABLE_STEPPER_DRIVER_INTERRUPT();
-  sei();
+  #ifdef __PIC32__
+    interrupts();
+  #else
+    sei();
+  #endif
 }
 
 // Block until all buffered steps are executed
