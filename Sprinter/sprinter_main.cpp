@@ -636,7 +636,7 @@ int FreeRam1(void)
 #else // PIC32
   uint8_t * pTopHeap = (byte *) &_heap + (unsigned int) &_min_heap_size;
   unsigned int topStack = (unsigned int) &pTopHeap;
-  free_memory = (unsigned int) pTopHeap - topStack; // distance between the heap & stack
+  free_memory = (unsigned int) topStack - (unsigned int)pTopHeap; // distance between the heap & stack
 #endif
 
   return free_memory;
@@ -885,6 +885,13 @@ void setup()
   showString(PSTR("Soft PWM Init\r\n"));
   init_Timer2_softpwm();
   #endif
+
+  showString(PSTR("Pin Settings\nX Step:"));
+  Serial.println(X_STEP_PIN);
+  showString(PSTR("Y Step:"));
+  Serial.println(Y_STEP_PIN);
+  showString(PSTR("Z Step:"));
+  Serial.println(Z_STEP_PIN);
 
   showString(PSTR("Planner Init\r\n"));
   plan_init();  // Initialize planner;
