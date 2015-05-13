@@ -3508,14 +3508,16 @@ void st_init()
 #endif //ADVANCE
 
 
-x  #else // must be a pic32
+  #else // must be a pic32
   // Configure a Type B timer in 16-bit mode with a 2MHZ clock
   // use Timer 3 for this interrupt
   // step 1 is create a Peripheral bus clock for a reasonable speed.
   // Lets configure it for 8MHz so we have some fast options and can reach 2mhz with the timer
+  #ifndef __PIC32MX__
   while(PB3DIVbits.PBDIVRDY == 0); // sit here until the clock can switch
   PB3DIVbits.PBDIV = F_CPU/8000000UL; // I expect this to be 25 on the MZ and 10 on the MX
   PB3DIVbits.ON = 1; // turn on the peripheral clock
+  #endif
 
   // Timer 3 is for the stepper motor control
   stepTimer.setFrequency(1000);
